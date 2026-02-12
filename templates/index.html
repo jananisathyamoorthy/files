@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Door Detection System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 20px;
+        }
+
+        .detection-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .panel-title {
+            font-size: 1.8em;
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .panel-icon {
+            font-size: 2em;
+        }
+
+        .video-container {
+            position: relative;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 20px;
+            min-height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .video-feed {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .placeholder {
+            color: #666;
+            text-align: center;
+            padding: 50px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-width: 120px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #38a169;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #e53e3e;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #718096;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4a5568;
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .upload-area {
+            border: 3px dashed #cbd5e0;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 20px;
+        }
+
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #f7fafc;
+        }
+
+        .upload-area.dragging {
+            border-color: #667eea;
+            background: #edf2f7;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .status-display {
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .status-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-label {
+            font-weight: bold;
+            color: #4a5568;
+        }
+
+        .status-value {
+            color: #2d3748;
+        }
+
+        .status-open {
+            color: #f56565;
+            font-weight: bold;
+        }
+
+        .status-closed {
+            color: #48bb78;
+            font-weight: bold;
+        }
+
+        .history-container {
+            max-height: 300px;
+            overflow-y: auto;
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .history-item {
+            padding: 10px;
+            background: white;
+            margin-bottom: 8px;
+            border-radius: 5px;
+            border-left: 4px solid #667eea;
+        }
+
+        .timestamp {
+            font-size: 0.9em;
+            color: #718096;
+        }
+
+        .roi-instructions {
+            background: #fef5e7;
+            border-left: 4px solid #f39c12;
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            font-size: 0.95em;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #e2e8f0;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        @media (max-width: 1024px) {
+            .grid-container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .sensitivity-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .sensitivity-label {
+            font-weight: bold;
+            color: #4a5568;
+            min-width: 100px;
+        }
+
+        .sensitivity-value {
+            background: #667eea;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+
+        .video-info-box {
+            background: #e6f7ff;
+            border-left: 4px solid #1890ff;
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+        }
+
+        .video-info-item {
+            margin: 5px 0;
+            color: #2d3748;
+        }
+
+        .video-info-item strong {
+            color: #1890ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚪 Door Detection System</h1>
+
+        <div class="grid-container">
+            <!-- LIVE DETECTION PANEL -->
+            <div class="detection-panel">
+                <div class="panel-header">
+                    <div class="panel-title">📹 Live Detection</div>
+                    <div class="panel-icon">🔴</div>
+                </div>
+
+                <div class="roi-instructions">
+                    <strong>Setup:</strong> 1) Start Live → 2) Set Door Frame → 3) Close Door → 4) Calibrate
+                </div>
+
+                <div class="video-container" id="liveVideoContainer">
+                    <div class="placeholder">Click "Start Live Detection" to begin</div>
+                </div>
+
+                <div class="controls">
+                    <button class="btn-primary" id="startLiveBtn" onclick="startLive()">Start Live Detection</button>
+                    <button class="btn-danger" id="stopLiveBtn" onclick="stopLive()" disabled>Stop Detection</button>
+                </div>
+
+                <div class="controls">
+                    <button class="btn-success" id="setRoiBtn" onclick="setROI()" disabled>Set Door Frame</button>
+                    <button class="btn-success" id="calibrateBtn" onclick="calibrate()" disabled>Calibrate Closed</button>
+                </div>
+
+                <div class="sensitivity-control">
+                    <span class="sensitivity-label">Sensitivity:</span>
+                    <button class="btn-secondary" onclick="adjustSensitivity('increase')" id="sensUpBtn" disabled>+</button>
+                    <span class="sensitivity-value" id="sensitivityValue">5.0%</span>
+                    <button class="btn-secondary" onclick="adjustSensitivity('decrease')" id="sensDownBtn" disabled>-</button>
+                </div>
+
+                <div class="status-display" id="liveStatus">
+                    <div class="status-item">
+                        <span class="status-label">Status:</span>
+                        <span class="status-value" id="liveStatusText">Not Started</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">ROI Set:</span>
+                        <span class="status-value" id="roiStatus">No</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">Calibrated:</span>
+                        <span class="status-value" id="calibratedStatus">No</span>
+                    </div>
+                </div>
+
+                <h3 style="margin-top: 20px; color: #667eea;">Detection History</h3>
+                <div class="history-container" id="liveHistory">
+                    <div style="text-align: center; color: #999;">No history yet</div>
+                </div>
+            </div>
+
+            <!-- VIDEO UPLOAD PANEL -->
+            <div class="detection-panel">
+                <div class="panel-header">
+                    <div class="panel-title">📁 Video Upload Detection</div>
+                    <div class="panel-icon">⬆️</div>
+                </div>
+
+                <div class="roi-instructions">
+                    <strong>Process:</strong> 1) Upload Video → 2) Set Door Frame → 3) Play Video
+                </div>
+
+                <div class="upload-area" id="uploadArea" onclick="document.getElementById('videoInput').click()">
+                    <input type="file" id="videoInput" class="file-input" accept="video/*" onchange="handleVideoUpload(event)">
+                    <div style="font-size: 3em; margin-bottom: 10px;">📹</div>
+                    <div style="font-size: 1.2em; color: #4a5568; margin-bottom: 5px;">Click to upload video</div>
+                    <div style="color: #718096;">or drag and drop</div>
+                </div>
+
+                <div class="video-container" id="videoPreview" style="display: none;">
+                    <img id="videoFirstFrame" class="video-feed" style="cursor: crosshair;">
+                </div>
+
+                <div class="video-container" id="videoPlaybackContainer" style="display: none;">
+                    <img id="videoPlayback" class="video-feed">
+                </div>
+
+                <div class="controls">
+                    <button class="btn-success" id="setVideoRoiBtn" onclick="setVideoROI()" disabled>Set Door Frame</button>
+                    <button class="btn-primary" id="playVideoBtn" onclick="playVideo()" disabled>Play Video</button>
+                </div>
+
+                <div class="progress-bar" id="videoProgress" style="display: none;">
+                    <div class="progress-fill" id="videoProgressFill" style="width: 0%;">0%</div>
+                </div>
+
+                <div class="video-info-box" id="videoInfo" style="display: none;">
+                    <div class="video-info-item"><strong>Video:</strong> <span id="videoName">-</span></div>
+                    <div class="video-info-item"><strong>Total Frames:</strong> <span id="videoFrames">-</span></div>
+                    <div class="video-info-item"><strong>FPS:</strong> <span id="videoFps">-</span></div>
+                </div>
+
+                <div class="status-display" id="playbackStatus" style="display: none;">
+                    <div style="text-align: center; padding: 20px; color: #667eea; font-size: 1.2em;">
+                        <strong>🎬 Video is playing with door detection overlay</strong>
+                        <br>
+                        <small style="color: #718096;">Watch the video above - door status is shown in real-time</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentVideoFilename = null;
+
+        // Live Detection Functions
+        function startLive() {
+            fetch('/start_live', { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('liveVideoContainer').innerHTML = 
+                            '<img src="/video_feed" class="video-feed">';
+                        document.getElementById('startLiveBtn').disabled = true;
+                        document.getElementById('stopLiveBtn').disabled = false;
+                        document.getElementById('setRoiBtn').disabled = false;
+                        document.getElementById('liveStatusText').textContent = 'Running';
+                        document.getElementById('liveStatusText').className = 'status-value status-open';
+                    } else {
+                        alert(data.message);
+                    }
+                });
+        }
+
+        function stopLive() {
+            fetch('/stop_live', { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('liveVideoContainer').innerHTML = 
+                            '<div class="placeholder">Click "Start Live Detection" to begin</div>';
+                        document.getElementById('startLiveBtn').disabled = false;
+                        document.getElementById('stopLiveBtn').disabled = true;
+                        document.getElementById('setRoiBtn').disabled = true;
+                        document.getElementById('calibrateBtn').disabled = true;
+                        document.getElementById('sensUpBtn').disabled = true;
+                        document.getElementById('sensDownBtn').disabled = true;
+                        document.getElementById('liveStatusText').textContent = 'Stopped';
+                        document.getElementById('liveStatusText').className = 'status-value';
+                        
+                        if (data.history && data.history.length > 0) {
+                            updateHistory(data.history);
+                        }
+                    }
+                });
+        }
+
+        function setROI() {
+            const roi = prompt('Enter ROI as: x,y,width,height\nExample: 100,100,300,400');
+            if (roi) {
+                const [x, y, width, height] = roi.split(',').map(Number);
+                
+                fetch('/set_roi', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ x, y, width, height })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('roiStatus').textContent = 'Yes';
+                        document.getElementById('roiStatus').className = 'status-value status-closed';
+                        document.getElementById('calibrateBtn').disabled = false;
+                        alert('Door frame set! Now close the door and click Calibrate.');
+                    }
+                });
+            }
+        }
+
+        function calibrate() {
+            if (confirm('Is the door completely CLOSED?')) {
+                fetch('/calibrate', { method: 'POST' })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            document.getElementById('calibratedStatus').textContent = 'Yes';
+                            document.getElementById('calibratedStatus').className = 'status-value status-closed';
+                            document.getElementById('sensUpBtn').disabled = false;
+                            document.getElementById('sensDownBtn').disabled = false;
+                            alert('Calibrated! Detection is now active.');
+                        }
+                    });
+            }
+        }
+
+        function adjustSensitivity(action) {
+            fetch('/adjust_sensitivity', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('sensitivityValue').textContent = data.value.toFixed(1) + '%';
+                }
+            });
+        }
+
+        function updateHistory(history) {
+            const container = document.getElementById('liveHistory');
+            if (history.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #999;">No history yet</div>';
+                return;
+            }
+            
+            container.innerHTML = history.map(item => `
+                <div class="history-item">
+                    <div class="timestamp">${item.timestamp}</div>
+                    <div class="status-${item.status.toLowerCase()}">${item.status}</div>
+                </div>
+            `).join('');
+        }
+
+        // Video Upload Functions
+        function handleVideoUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('video', file);
+
+            document.getElementById('videoProgressFill').style.width = '50%';
+            document.getElementById('videoProgressFill').textContent = '50%';
+            document.getElementById('videoProgress').style.display = 'block';
+
+            fetch('/upload_video', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('videoProgressFill').style.width = '100%';
+                    document.getElementById('videoProgressFill').textContent = '100%';
+                    
+                    setTimeout(() => {
+                        document.getElementById('videoProgress').style.display = 'none';
+                        document.getElementById('uploadArea').style.display = 'none';
+                        document.getElementById('videoPreview').style.display = 'flex';
+                        document.getElementById('videoFirstFrame').src = 'data:image/jpeg;base64,' + data.first_frame;
+                        document.getElementById('setVideoRoiBtn').disabled = false;
+                        
+                        document.getElementById('videoInfo').style.display = 'block';
+                        document.getElementById('videoName').textContent = data.filename;
+                        document.getElementById('videoFrames').textContent = data.total_frames;
+                        document.getElementById('videoFps').textContent = data.fps.toFixed(2);
+                        
+                        currentVideoFilename = data.filename;
+                    }, 500);
+                } else {
+                    alert(data.message);
+                }
+            });
+        }
+
+        function setVideoROI() {
+            const roi = prompt('Enter ROI as: x,y,width,height\nExample: 100,100,300,400');
+            if (roi) {
+                const [x, y, width, height] = roi.split(',').map(Number);
+                
+                fetch('/set_video_roi', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ x, y, width, height })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        // Calibrate with first frame
+                        fetch('/calibrate_video', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({})
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success) {
+                                document.getElementById('playVideoBtn').disabled = false;
+                                alert('Door frame set and calibrated! Click "Play Video" to start.');
+                            }
+                        });
+                    }
+                });
+            }
+        }
+
+        function playVideo() {
+            // Hide preview, show playback
+            document.getElementById('videoPreview').style.display = 'none';
+            document.getElementById('videoPlaybackContainer').style.display = 'flex';
+            document.getElementById('playbackStatus').style.display = 'block';
+            
+            // Start video playback
+            document.getElementById('videoPlayback').src = '/video_playback_feed?t=' + new Date().getTime();
+            
+            document.getElementById('playVideoBtn').disabled = true;
+            document.getElementById('setVideoRoiBtn').disabled = true;
+        }
+
+        // Drag and drop
+        const uploadArea = document.getElementById('uploadArea');
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragging');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragging');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragging');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                document.getElementById('videoInput').files = files;
+                handleVideoUpload({ target: { files } });
+            }
+        });
+    </script>
+</body>
+</html>
